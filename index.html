@@ -10,6 +10,7 @@
             --bg-color: #0f172a;
             --panel-bg: #1e293b;
             --accent: #3b82f6;
+            --discord: #5865f2;
             --text: #f8fafc;
             --border: #334155;
         }
@@ -78,8 +79,8 @@
             transition: background 0.2s, opacity 0.2s;
         }
         button:hover { background: #2563eb; }
-        button.btn-upload { background: #1bb76e; }
-        button.btn-upload:hover { background: #159458; }
+        button.btn-discord { background: var(--discord); }
+        button.btn-discord:hover { background: #4752c4; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .status-msg {
@@ -140,6 +141,10 @@
     <div class="card">
         <h2>Szerelési Adatok</h2>
         <div class="form-group">
+            <label>Discord Webhook URL (Beállításokban hozz létre egyet)</label>
+            <input type="text" id="webhookUrl" placeholder="https://discord.com/api/webhooks/...">
+        </div>
+        <div class="form-group">
             <label>Szerelőtelep Neve</label>
             <input type="text" id="shopName" value="LOS SANTOS CUSTOMS / SEERPG" oninput="updateReceipt()">
         </div>
@@ -173,8 +178,8 @@
         </div>
         
         <div class="btn-group">
-            <button class="btn-upload" id="uploadBtn" onclick="uploadImage()">FELTÖLTÉS & LINK MÁSOLÁSA</button>
-            <button onclick="downloadImage()">KÉP LETÖLTÉSE</button>
+            <button class="btn-discord" id="uploadBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
+            <button onclick="downloadImage()">LETÖLTÉS KÉPKÉNT</button>
         </div>
 
         <div id="statusMsg" class="status-msg"></div>
@@ -220,9 +225,6 @@
 </div>
 
 <script>
-    // Publikus FreeImage API kulcs
-    const API_KEY = '6d207e02198a847aa98d0a2a901485a5';
-
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
     document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
 
@@ -264,50 +266,50 @@
         });
     }
 
-    function uploadImage() {
-        const receiptElement = document.getElementById('receipt-area');
+    function sendToDiscord() {
+        const webhookUrl = document.getElementById('webhookUrl').value.trim();
         const statusMsg = document.getElementById('statusMsg');
         const uploadBtn = document.getElementById('uploadBtn');
 
+        if (!webhookUrl) {
+            statusMsg.style.display = 'block';
+            statusMsg.className = 'status-msg status-error';
+            statusMsg.innerText = 'Kérlek add meg a Discord Webhook URL-t!';
+            return;
+        }
+
         statusMsg.style.display = 'block';
         statusMsg.className = 'status-msg status-loading';
-        statusMsg.innerText = 'Kép generálása és feltöltése...';
+        statusMsg.innerText = 'Bizonylat küldése Discordra...';
         uploadBtn.disabled = true;
 
+        const receiptElement = document.getElementById('receipt-area');
+
         html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
-            const base64Image = canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, "");
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
+                formData.append('content', '🧾 **Új elszámoló bizonylat kiállítva!**\n**Partner:** ' + document.getElementById('partner').value + ' | **Szerelő:** ' + document.getElementById('mechanic').value);
 
-            const formData = new FormData();
-            formData.append('key', API_KEY);
-            formData.append('action', 'upload');
-            formData.append('source', base64Image);
-            formData.append('format', 'json');
-
-            fetch('https://freeimage.host/api/1/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                uploadBtn.disabled = false;
-                if (data && data.image && data.image.url) {
-                    const imageUrl = data.image.url;
-                    
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(imageUrl);
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => {
+                    uploadBtn.disabled = false;
+                    if (res.ok) {
+                        statusMsg.className = 'status-msg status-success';
+                        statusMsg.innerText = '✔ Sikeresen beküldve a Discord szobába!';
+                    } else {
+                        throw new Error('Hibás Webhook URL vagy hiányzó jogosultság');
                     }
-
-                    statusMsg.className = 'status-msg status-success';
-                    statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>A link másolva a vágólapra:<br><a href="' + imageUrl + '" target="_blank" style="color: #4ade80;">' + imageUrl + '</a>';
-                } else {
-                    throw new Error('Hiba történt a szerver válaszában');
-                }
-            })
-            .catch(err => {
-                uploadBtn.disabled = false;
-                statusMsg.className = 'status-msg status-error';
-                statusMsg.innerText = 'Feltöltési hiba: Próbáld meg kikapcsolni az adblockert, vagy használd a "Kép Letöltése" gombot!';
-            });
+                })
+                .catch(err => {
+                    uploadBtn.disabled = false;
+                    statusMsg.className = 'status-msg status-error';
+                    statusMsg.innerText = 'Hiba: ' + err.message;
+                });
+            }, 'image/png');
         });
     }
 </script>
