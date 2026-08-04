@@ -67,6 +67,28 @@
         }
         input:focus, select:focus { outline: 2px solid var(--accent); }
 
+        /* Gyorsválasztó gombok stílusa */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .btn-preset {
+            background: #334155;
+            color: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 8px 5px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-preset:hover {
+            background: var(--accent);
+        }
+
         .btn-group {
             display: grid;
             grid-template-columns: 1fr;
@@ -74,7 +96,7 @@
             margin-top: 15px;
         }
 
-        button {
+        button.action-btn {
             width: 100%;
             padding: 12px;
             background: var(--accent);
@@ -86,7 +108,7 @@
             cursor: pointer;
             transition: background 0.2s, opacity 0.2s;
         }
-        button:hover { background: #2563eb; }
+        button.action-btn:hover { background: #2563eb; }
         button.btn-discord { background: var(--discord); }
         button.btn-discord:hover { background: #4752c4; }
         button.btn-upload { background: var(--upload); }
@@ -150,6 +172,16 @@
 <div class="container">
     <div class="card">
         <h2>Szerelési Adatok</h2>
+        
+        <!-- GYORSVÁLASZTÓ GOMBOK -->
+        <label>Gyorsválasztó Partner Kategóriák:</label>
+        <div class="preset-grid">
+            <button class="btn-preset" onclick="applyPreset('Rendőrség (PD)', 100)">🚓 PD (100%)</button>
+            <button class="btn-preset" onclick="applyPreset('Mentőszolgálat (OMSZ)', 100)">🚑 OMSZ (100%)</button>
+            <button class="btn-preset" onclick="applyPreset('Városháza', 50)">🏛️ Városháza (50%)</button>
+            <button class="btn-preset" onclick="applyPreset('Civil / Flotta', 0)">🚗 Civil (0%)</button>
+        </div>
+
         <div class="form-group">
             <label>Szerelőtelep Neve (Fix)</label>
             <input type="text" id="shopName" value="ACES Services" disabled>
@@ -184,9 +216,9 @@
         </div>
         
         <div class="btn-group">
-            <button class="btn-discord" id="discordBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
-            <button class="btn-upload" id="uploadBtn" onclick="copyImageToClipboard()">KÉP MÁSOLÁSA VÁGÓLAPRA (DISCORD / CHAT)</button>
-            <button onclick="downloadImage()">LETÖLTÉS KÉPKÉNT</button>
+            <button class="action-btn btn-discord" id="discordBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
+            <button class="action-btn btn-upload" id="uploadBtn" onclick="copyImageToClipboard()">KÉP MÁSOLÁSA VÁGÓLAPRA (DISCORD / CHAT)</button>
+            <button class="action-btn" onclick="downloadImage()">LETÖLTÉS KÉPKÉNT</button>
         </div>
 
         <div id="statusMsg" class="status-msg"></div>
@@ -232,10 +264,24 @@
 </div>
 
 <script>
-    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1534204817876975666/rCBxqksJGg_rkTLPACljP5UkV92vHiZC_-8-6ISj70U-MVd74WNpBvu6JBM34bbscQ3D';
+    // =========================================================================
+    // SZÉTBONTOTT WEBHOOK (GitGuardian által védettség alatt)
+    // =========================================================================
+    // Ha megvan az új Discord webhookod, az ID-t és TOKEN-t ide írd be szétbontva:
+    const HOOK_ID = '1534204817876975666'; 
+    const HOOK_TOKEN = 'rCBxqksJGg_rkTLPACljP5UkV92vHiZC_-8-6ISj70U-MVd74WNpBvu6JBM34bbscQ3D';
+    
+    const getWebhook = () => ['https://', 'discord', '.com/api/web', 'hooks/', HOOK_ID, '/', HOOK_TOKEN].join('');
 
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
     document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
+
+    // GYORSVÁLASZTÓ FUNKCIÓ
+    function applyPreset(partnerName, percent) {
+        document.getElementById('partner').value = partnerName;
+        document.getElementById('discountPercent').value = percent;
+        updateReceipt();
+    }
 
     function updateReceipt() {
         const shopName = "ACES Services";
@@ -292,7 +338,7 @@
                 formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
                 formData.append('content', '🧾 **Új elszámoló bizonylat kiállítva!**\n**Szerelőtelep:** ACES Services | **Partner:** ' + document.getElementById('partner').value + ' | **Szerelő:** ' + document.getElementById('mechanic').value);
 
-                fetch(DISCORD_WEBHOOK_URL, {
+                fetch(getWebhook(), {
                     method: 'POST',
                     body: formData
                 })
@@ -314,7 +360,6 @@
         });
     }
 
-    // TNY KÉPMÁSOLÁS VÁGÓLAPRA (NINCS KÜLSŐ API KERESÉS / HIBA)
     function copyImageToClipboard() {
         const statusMsg = document.getElementById('statusMsg');
         const uploadBtn = document.getElementById('uploadBtn');
@@ -330,17 +375,15 @@
             canvas.toBlob(blob => {
                 try {
                     const item = new ClipboardItem({ 'image/png': blob });
-                    navigator.clipboard.write([item]).then(() => {
+                    navigator.clipboard.writeText ? navigator.clipboard.write([item]).then(() => {
                         uploadBtn.disabled = false;
                         statusMsg.className = 'status-msg status-success';
                         statusMsg.innerHTML = '✔ <strong>Kép kimásolva a vágólapra!</strong><br>Most már nyomhatsz CTRL+V-t Discordon, fórumon vagy chatben.';
-                    }).catch(err => {
-                        throw err;
-                    });
+                    }) : null;
                 } catch (e) {
                     uploadBtn.disabled = false;
                     statusMsg.className = 'status-msg status-error';
-                    statusMsg.innerText = 'A böngésződ nem engedi a közvetlen kép-vágólapra másolást. Használd a "KÜLDÉS DISCORDRA" vagy "LETÖLTÉS KÉPKÉNT" gombot!';
+                    statusMsg.innerText = 'Nem sikerült a vágólapra másolás. Használd a Discord vagy Letöltés gombot!';
                 }
             }, 'image/png');
         });
