@@ -70,7 +70,7 @@
         /* Gyorsválasztó gombok stílusa */
         .preset-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 8px;
             margin-bottom: 15px;
         }
@@ -78,7 +78,7 @@
             background: #334155;
             color: #f8fafc;
             border: 1px solid var(--border);
-            padding: 8px 5px;
+            padding: 10px 5px;
             font-size: 0.85rem;
             border-radius: 6px;
             cursor: pointer;
@@ -176,10 +176,10 @@
         <!-- GYORSVÁLASZTÓ GOMBOK -->
         <label>Gyorsválasztó Partner Kategóriák:</label>
         <div class="preset-grid">
-            <button class="btn-preset" onclick="applyPreset('Rendőrség (PD)', 100)">🚓 PD (100%)</button>
+            <button class="btn-preset" onclick="applyPreset('Rendőrség (LSPD)', 100)">🚓 Rendőrség (100%)</button>
+            <button class="btn-preset" onclick="applyPreset('Sheriffség (BCSO)', 100)">🤠 BCSO (100%)</button>
             <button class="btn-preset" onclick="applyPreset('Mentőszolgálat (OMSZ)', 100)">🚑 OMSZ (100%)</button>
-            <button class="btn-preset" onclick="applyPreset('Városháza', 50)">🏛️ Városháza (50%)</button>
-            <button class="btn-preset" onclick="applyPreset('Civil / Flotta', 0)">🚗 Civil (0%)</button>
+            <button class="btn-preset" onclick="applyPreset('Civil / Flotta', 0)">🚗 Civil / Flotta (0%)</button>
         </div>
 
         <div class="form-group">
@@ -188,7 +188,7 @@
         </div>
         <div class="form-group">
             <label>Partner Frakció / Szervezet</label>
-            <input type="text" id="partner" value="Rendőrség (PD)" oninput="updateReceipt()">
+            <input type="text" id="partner" value="Rendőrség (LSPD)" oninput="updateReceipt()">
         </div>
         <div class="form-group">
             <label>Jármű Rendszáma & Típusa</label>
@@ -268,8 +268,8 @@
     // SZÉTBONTOTT WEBHOOK (GitGuardian által védettség alatt)
     // =========================================================================
     // Ha megvan az új Discord webhookod, az ID-t és TOKEN-t ide írd be szétbontva:
-    const HOOK_ID = '1534204817876975666'; 
-    const HOOK_TOKEN = 'rCBxqksJGg_rkTLPACljP5UkV92vHiZC_-8-6ISj70U-MVd74WNpBvu6JBM34bbscQ3D';
+    const HOOK_ID = 'IDE_JÖN_AZ_ÚJ_HOOK_ID'; 
+    const HOOK_TOKEN = 'IDE_JÖN_AZ_ÚJ_HOOK_TOKEN';
     
     const getWebhook = () => ['https://', 'discord', '.com/api/web', 'hooks/', HOOK_ID, '/', HOOK_TOKEN].join('');
 
