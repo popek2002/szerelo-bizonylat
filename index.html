@@ -220,9 +220,6 @@
 </div>
 
 <script>
-    // Publikus FreeImage API kulcs
-    const API_KEY = '6d207e02198a847aa98d0a2a901485a5';
-
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
     document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
 
@@ -275,39 +272,35 @@
         uploadBtn.disabled = true;
 
         html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
-            const base64Image = canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, "");
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('reqtype', 'fileupload');
+                formData.append('fileToUpload', blob, 'bizonylat.png');
 
-            const formData = new FormData();
-            formData.append('key', API_KEY);
-            formData.append('action', 'upload');
-            formData.append('source', base64Image);
-            formData.append('format', 'json');
+                fetch('https://catbox.moe/user/api.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.text())
+                .then(imageUrl => {
+                    uploadBtn.disabled = false;
+                    if (imageUrl && imageUrl.startsWith('http')) {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(imageUrl);
+                        }
 
-            fetch('https://freeimage.host/api/1/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                uploadBtn.disabled = false;
-                if (data && data.image && data.image.url) {
-                    const imageUrl = data.image.url;
-                    
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(imageUrl);
+                        statusMsg.className = 'status-msg status-success';
+                        statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>A link másolva a vágólapra:<br><a href="' + imageUrl + '" target="_blank" style="color: #4ade80;">' + imageUrl + '</a>';
+                    } else {
+                        throw new Error('Nem érkezett érvényes kép-URL');
                     }
-
-                    statusMsg.className = 'status-msg status-success';
-                    statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>A link másolva a vágólapra:<br><a href="' + imageUrl + '" target="_blank" style="color: #4ade80;">' + imageUrl + '</a>';
-                } else {
-                    throw new Error('Hiba történt a szerver válaszában');
-                }
-            })
-            .catch(err => {
-                uploadBtn.disabled = false;
-                statusMsg.className = 'status-msg status-error';
-                statusMsg.innerText = 'Feltöltési hiba: Próbáld meg kikapcsolni az adblockert, vagy használd a "Kép Letöltése" gombot!';
-            });
+                })
+                .catch(err => {
+                    uploadBtn.disabled = false;
+                    statusMsg.className = 'status-msg status-error';
+                    statusMsg.innerText = 'Feltöltési hiba. Kérlek várd meg míg a GitHub Pages frissül, vagy használd a "Kép letöltése" gombot!';
+                });
+            }, 'image/png');
         });
     }
 </script>
