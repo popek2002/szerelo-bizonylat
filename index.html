@@ -185,7 +185,7 @@
         
         <div class="btn-group">
             <button class="btn-discord" id="discordBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
-            <button class="btn-upload" id="uploadBtn" onclick="uploadAndCopyLink()">KÉP UPLOAD & LINK MÁSOLÁSA (INGAME CHAT-HEZ)</button>
+            <button class="btn-upload" id="uploadBtn" onclick="copyImageToClipboard()">KÉP MÁSOLÁSA VÁGÓLAPRA (DISCORD / CHAT)</button>
             <button onclick="downloadImage()">LETÖLTÉS KÉPKÉNT</button>
         </div>
 
@@ -232,9 +232,6 @@
 </div>
 
 <script>
-    // =========================================================================
-    // FIX DISCORD WEBHOOK URL
-    // =========================================================================
     const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1534204817876975666/rCBxqksJGg_rkTLPACljP5UkV92vHiZC_-8-6ISj70U-MVd74WNpBvu6JBM34bbscQ3D';
 
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
@@ -305,7 +302,7 @@
                         statusMsg.className = 'status-msg status-success';
                         statusMsg.innerText = '✔ Sikeresen beküldve a Discord szobába!';
                     } else {
-                        throw new Error('Hibás Webhook URL vagy hiányzó jogosultság a csatornában.');
+                        throw new Error('Hibás Webhook URL vagy hiányzó jogosultság.');
                     }
                 })
                 .catch(err => {
@@ -317,47 +314,34 @@
         });
     }
 
-    function uploadAndCopyLink() {
+    // TNY KÉPMÁSOLÁS VÁGÓLAPRA (NINCS KÜLSŐ API KERESÉS / HIBA)
+    function copyImageToClipboard() {
         const statusMsg = document.getElementById('statusMsg');
         const uploadBtn = document.getElementById('uploadBtn');
 
         statusMsg.style.display = 'block';
         statusMsg.className = 'status-msg status-loading';
-        statusMsg.innerText = 'Kép generálása és feltöltése...';
+        statusMsg.innerText = 'Kép másolása a vágólapra...';
         uploadBtn.disabled = true;
 
         const receiptElement = document.getElementById('receipt-area');
 
         html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
             canvas.toBlob(blob => {
-                const formData = new FormData();
-                formData.append('file', blob, 'bizonylat.png');
-
-                fetch('https://tmpfiles.org/api/v1/upload', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    uploadBtn.disabled = false;
-                    if (data && data.status === 'success' && data.data && data.data.url) {
-                        const directUrl = data.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
-
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(directUrl);
-                        }
-
+                try {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    navigator.clipboard.write([item]).then(() => {
+                        uploadBtn.disabled = false;
                         statusMsg.className = 'status-msg status-success';
-                        statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>A link másolva a vágólapra (nyomj CTRL+V-t in-game!):<br><a href="' + directUrl + '" target="_blank" style="color: #4ade80;">' + directUrl + '</a>';
-                    } else {
-                        throw new Error('Szerver oldali hiba');
-                    }
-                })
-                .catch(err => {
+                        statusMsg.innerHTML = '✔ <strong>Kép kimásolva a vágólapra!</strong><br>Most már nyomhatsz CTRL+V-t Discordon, fórumon vagy chatben.';
+                    }).catch(err => {
+                        throw err;
+                    });
+                } catch (e) {
                     uploadBtn.disabled = false;
                     statusMsg.className = 'status-msg status-error';
-                    statusMsg.innerText = 'Feltöltési hiba. Használd a Discord küldés vagy Letöltés gombot!';
-                });
+                    statusMsg.innerText = 'A böngésződ nem engedi a közvetlen kép-vágólapra másolást. Használd a "KÜLDÉS DISCORDRA" vagy "LETÖLTÉS KÉPKÉNT" gombot!';
+                }
             }, 'image/png');
         });
     }
