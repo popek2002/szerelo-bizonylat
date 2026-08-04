@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Szerelőtelep - Bizonylat Generáló & Imgur</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent: #3b82f6;
+            --text: #f8fafc;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background-color: var(--panel-bg);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+        }
+
+        h2 { margin-top: 0; color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #0f172a;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus { outline: 2px solid var(--accent); }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        button.btn-imgur { background: #1bb76e; }
+        button.btn-imgur:hover { background: #159458; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .status-msg {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            display: none;
+            word-break: break-all;
+        }
+        .status-success { background: #14532d; color: #4ade80; border: 1px solid #16a34a; }
+        .status-loading { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
+        .status-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+
+        #receipt-area {
+            background-color: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 30px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #e6edf3;
+            position: relative;
+        }
+
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px dashed #30363d;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .receipt-header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; color: #58a6ff; }
+        
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .receipt-divider {
+            border-top: 1px dashed #30363d;
+            margin: 15px 0;
+        }
+
+        .total-box {
+            background: #161b22;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            margin-top: 15px;
+        }
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; }
+        .highlight { color: #3fb950; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>Szerelési Adatok</h2>
+        <div class="form-group">
+            <label>Szerelőtelep Neve</label>
+            <input type="text" id="shopName" value="LOS SANTOS CUSTOMS / SEERPG" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Partner Frakció / Szervezet</label>
+            <input type="text" id="partner" value="Rendőrség (PD)" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Jármű Rendszáma & Típusa</label>
+            <input type="text" id="vehicle" value="POLICE-04 (Vapid Stanier)" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Igénybe vevő (Név / Jelvényszám)</label>
+            <input type="text" id="officer" value="John Doe #104" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Elvégzett Munkák</label>
+            <input type="text" id="services" value="Motor generál, karosszéria, 4x gumi" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Eredeti Ár ($)</label>
+            <input type="number" id="originalPrice" value="50000" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Kedvezmény Mértéke (%)</label>
+            <input type="number" id="discountPercent" value="100" min="0" max="100" oninput="updateReceipt()">
+        </div>
+        <div class="form-group">
+            <label>Szerelő Neve / Azonosítója</label>
+            <input type="text" id="mechanic" value="Kovács Péter #SZ-12" oninput="updateReceipt()">
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn-imgur" id="uploadBtn" onclick="uploadToImgur()">FELTÖLTÉS IMGURRA</button>
+            <button onclick="downloadImage()">KÉP LETÖLTÉSE</button>
+        </div>
+
+        <div id="statusMsg" class="status-msg"></div>
+    </div>
+
+    <div class="card">
+        <h2>Bizonylat Előnézet</h2>
+        
+        <div id="receipt-area">
+            <div class="receipt-header">
+                <h1 id="out-shopName">LOS SANTOS CUSTOMS</h1>
+                <small>FLOTTA ELSZÁMOLÓ BIZONYLAT</small>
+            </div>
+
+            <div class="receipt-row"><span>Dátum:</span> <span id="out-date"></span></div>
+            <div class="receipt-row"><span>Bizonylatszám:</span> <span id="out-id"></span></div>
+            <div class="receipt-divider"></div>
+
+            <div class="receipt-row"><span>Partner:</span> <strong id="out-partner"></strong></div>
+            <div class="receipt-row"><span>Igénybevevő:</span> <span id="out-officer"></span></div>
+            <div class="receipt-row"><span>Jármű:</span> <span id="out-vehicle"></span></div>
+            <div class="receipt-row"><span>Munkák:</span> <span id="out-services"></span></div>
+            
+            <div class="receipt-divider"></div>
+
+            <div class="receipt-row"><span>Eredeti Összeg:</span> <span id="out-original"></span></div>
+            <div class="receipt-row"><span>Kedvezmény (<span id="out-percent"></span>%):</span> <span id="out-discount"></span></div>
+
+            <div class="total-box">
+                <div class="total-row">
+                    <span>FIZETENDŐ ÖSSZEG:</span>
+                    <span class="highlight" id="out-final">$ 0</span>
+                </div>
+            </div>
+
+            <div class="receipt-divider"></div>
+            <div class="receipt-row"><span>Kiállító szerelő:</span> <span id="out-mechanic"></span></div>
+            <div style="text-align: center; margin-top: 15px; font-size: 0.8em; color: #8b949e;">
+                *** Hivatalos Frakcióközi Bizonylat ***
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const IMGUR_CLIENT_ID = 'c13d33ee18b7bfd';
+
+    document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
+    document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
+
+    function updateReceipt() {
+        const shopName = document.getElementById('shopName').value;
+        const partner = document.getElementById('partner').value;
+        const vehicle = document.getElementById('vehicle').value;
+        const officer = document.getElementById('officer').value;
+        const services = document.getElementById('services').value;
+        const originalPrice = parseFloat(document.getElementById('originalPrice').value) || 0;
+        const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+        const mechanic = document.getElementById('mechanic').value;
+
+        const discountAmount = originalPrice * (discountPercent / 100);
+        const finalPrice = originalPrice - discountAmount;
+
+        document.getElementById('out-shopName').innerText = shopName;
+        document.getElementById('out-partner').innerText = partner;
+        document.getElementById('out-vehicle').innerText = vehicle;
+        document.getElementById('out-officer').innerText = officer;
+        document.getElementById('out-services').innerText = services;
+        document.getElementById('out-mechanic').innerText = mechanic;
+
+        document.getElementById('out-original').innerText = '$ ' + originalPrice.toLocaleString();
+        document.getElementById('out-percent').innerText = discountPercent;
+        document.getElementById('out-discount').innerText = '- $ ' + discountAmount.toLocaleString();
+        document.getElementById('out-final').innerText = '$ ' + finalPrice.toLocaleString();
+    }
+
+    updateReceipt();
+
+    function downloadImage() {
+        const receiptElement = document.getElementById('receipt-area');
+        html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'bizonylat_' + document.getElementById('out-id').innerText + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
+    function uploadToImgur() {
+        const receiptElement = document.getElementById('receipt-area');
+        const statusMsg = document.getElementById('statusMsg');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        statusMsg.style.display = 'block';
+        statusMsg.className = 'status-msg status-loading';
+        statusMsg.innerText = 'Kép generálása és feltöltése...';
+        uploadBtn.disabled = true;
+
+        html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
+            const base64Image = canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, "");
+
+            fetch('https://api.imgur.com/3/image', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: base64Image,
+                    type: 'base64'
+                })
+            })
+            .then(res => res.json())
+            .then(res => {
+                uploadBtn.disabled = false;
+                if (res && res.data && res.data.link) {
+                    const link = res.data.link;
+                    // Vágólapra másolás megpróbálása
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(link);
+                    }
+                    statusMsg.className = 'status-msg status-success';
+                    statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>Kép linkje:<br><a href="' + link + '" target="_blank" style="color: #4ade80;">' + link + '</a>';
+                } else {
+                    const errReason = (res && res.data && res.data.error) ? res.data.error : 'Hálózati vagy CORS hiba (Nyisd meg HTTPS weboldalról!)';
+                    throw new Error(errReason);
+                }
+            })
+            .catch(err => {
+                uploadBtn.disabled = false;
+                statusMsg.className = 'status-msg status-error';
+                statusMsg.innerText = 'Hiba: ' + err.message;
+            });
+        });
+    }
+</script>
+
+</body>
+</html>
