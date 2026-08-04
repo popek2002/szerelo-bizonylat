@@ -126,7 +126,7 @@
         .status-loading { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
         .status-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
 
-        /* FEHÉR ALAPÚ SZÁMLA STÍLUS */
+        /* FEHÉR ALAPÚ SZÁMLA STÍLUS LOGÓVAL */
         #receipt-area {
             background-color: #ffffff;
             border: 2px solid #1e293b;
@@ -144,6 +144,22 @@
             padding-bottom: 15px;
             margin-bottom: 20px;
         }
+        
+        .brand-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 5px;
+        }
+
+        /* A LOGÓ MÉRETEZÉSE */
+        .brand-container img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
         .receipt-header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 2px; color: #0f172a; font-weight: bold; }
         .receipt-header small { color: #475569; font-weight: bold; }
         
@@ -232,7 +248,11 @@
         
         <div id="receipt-area">
             <div class="receipt-header">
-                <h1 id="out-shopName">ACES Services</h1>
+                <div class="brand-container">
+                    <!-- LOGÓ BEÁLLÍTÁSA: Cseréld ki a src="..." tartalmát a saját logód URL-jére/fájlnevére! -->
+                    <img id="out-logo" src="aces-logo.png" alt="ACES Logo">
+                    <h1 id="out-shopName">ACES Services</h1>
+                </div>
                 <small>FLOTTA ELSZÁMOLÓ BIZONYLAT</small>
             </div>
 
@@ -314,7 +334,7 @@
 
     function downloadImage() {
         const receiptElement = document.getElementById('receipt-area');
-        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
             const link = document.createElement('a');
             link.download = 'bizonylat_' + document.getElementById('out-id').innerText + '.png';
             link.href = canvas.toDataURL('image/png');
@@ -333,7 +353,7 @@
 
         const receiptElement = document.getElementById('receipt-area');
 
-        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
             canvas.toBlob(blob => {
                 const formData = new FormData();
                 formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
@@ -372,7 +392,7 @@
 
         const receiptElement = document.getElementById('receipt-area');
 
-        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
             canvas.toBlob(blob => {
                 try {
                     const item = new ClipboardItem({ 'image/png': blob });
