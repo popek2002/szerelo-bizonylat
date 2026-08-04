@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szerelőtelep - Bizonylat Generáló & Imgur</title>
+    <title>Szerelőtelep - Bizonylat Generáló</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -78,8 +78,8 @@
             transition: background 0.2s, opacity 0.2s;
         }
         button:hover { background: #2563eb; }
-        button.btn-imgur { background: #1bb76e; }
-        button.btn-imgur:hover { background: #159458; }
+        button.btn-upload { background: #1bb76e; }
+        button.btn-upload:hover { background: #159458; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .status-msg {
@@ -173,7 +173,7 @@
         </div>
         
         <div class="btn-group">
-            <button class="btn-imgur" id="uploadBtn" onclick="uploadToImgur()">FELTÖLTÉS IMGURRA</button>
+            <button class="btn-upload" id="uploadBtn" onclick="uploadImage()">FELTÖLTÉS & LINK MÁSOLÁSA</button>
             <button onclick="downloadImage()">KÉP LETÖLTÉSE</button>
         </div>
 
@@ -220,7 +220,8 @@
 </div>
 
 <script>
-    const IMGUR_CLIENT_ID = 'c13d33ee18b7bfd';
+    // Publikus FreeImage API kulcs
+    const API_KEY = '6d207e02198a847aa98d0a2a901485a5';
 
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
     document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
@@ -263,7 +264,7 @@
         });
     }
 
-    function uploadToImgur() {
+    function uploadImage() {
         const receiptElement = document.getElementById('receipt-area');
         const statusMsg = document.getElementById('statusMsg');
         const uploadBtn = document.getElementById('uploadBtn');
@@ -276,37 +277,36 @@
         html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
             const base64Image = canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, "");
 
-            fetch('https://api.imgur.com/3/image', {
+            const formData = new FormData();
+            formData.append('key', API_KEY);
+            formData.append('action', 'upload');
+            formData.append('source', base64Image);
+            formData.append('format', 'json');
+
+            fetch('https://freeimage.host/api/1/upload', {
                 method: 'POST',
-                headers: {
-                    'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    image: base64Image,
-                    type: 'base64'
-                })
+                body: formData
             })
             .then(res => res.json())
-            .then(res => {
+            .then(data => {
                 uploadBtn.disabled = false;
-                if (res && res.data && res.data.link) {
-                    const link = res.data.link;
-                    // Vágólapra másolás megpróbálása
+                if (data && data.image && data.image.url) {
+                    const imageUrl = data.image.url;
+                    
                     if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(link);
+                        navigator.clipboard.writeText(imageUrl);
                     }
+
                     statusMsg.className = 'status-msg status-success';
-                    statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>Kép linkje:<br><a href="' + link + '" target="_blank" style="color: #4ade80;">' + link + '</a>';
+                    statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>A link másolva a vágólapra:<br><a href="' + imageUrl + '" target="_blank" style="color: #4ade80;">' + imageUrl + '</a>';
                 } else {
-                    const errReason = (res && res.data && res.data.error) ? res.data.error : 'Hálózati vagy CORS hiba (Nyisd meg HTTPS weboldalról!)';
-                    throw new Error(errReason);
+                    throw new Error('Hiba történt a szerver válaszában');
                 }
             })
             .catch(err => {
                 uploadBtn.disabled = false;
                 statusMsg.className = 'status-msg status-error';
-                statusMsg.innerText = 'Hiba: ' + err.message;
+                statusMsg.innerText = 'Feltöltési hiba: Próbáld meg kikapcsolni az adblockert, vagy használd a "Kép Letöltése" gombot!';
             });
         });
     }
