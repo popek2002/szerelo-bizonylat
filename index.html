@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szerelőtelep - Bizonylat Generáló</title>
+    <title>ACES Services - Bizonylat Generáló</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -11,6 +11,7 @@
             --panel-bg: #1e293b;
             --accent: #3b82f6;
             --discord: #5865f2;
+            --upload: #10b981;
             --text: #f8fafc;
             --border: #334155;
         }
@@ -58,16 +59,23 @@
             color: #fff;
             box-sizing: border-box;
         }
+        input:disabled {
+            background: #1e293b;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border-color: #475569;
+        }
         input:focus, select:focus { outline: 2px solid var(--accent); }
 
         .btn-group {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 10px;
             margin-top: 15px;
         }
 
         button {
-            flex: 1;
+            width: 100%;
             padding: 12px;
             background: var(--accent);
             color: white;
@@ -81,6 +89,8 @@
         button:hover { background: #2563eb; }
         button.btn-discord { background: var(--discord); }
         button.btn-discord:hover { background: #4752c4; }
+        button.btn-upload { background: var(--upload); }
+        button.btn-upload:hover { background: #059669; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .status-msg {
@@ -141,12 +151,8 @@
     <div class="card">
         <h2>Szerelési Adatok</h2>
         <div class="form-group">
-            <label>Discord Webhook URL (Beállításokban hozz létre egyet)</label>
-            <input type="text" id="webhookUrl" placeholder="https://discord.com/api/webhooks/1534204817876975666/rCBxqksJGg_rkTLPACljP5UkV92vHiZC_-8-6ISj70U-MVd74WNpBvu6JBM34bbscQ3D">
-        </div>
-        <div class="form-group">
-            <label>Szerelőtelep Neve</label>
-            <input type="text" id="shopName" value="LOS SANTOS CUSTOMS / SEERPG" oninput="updateReceipt()">
+            <label>Szerelőtelep Neve (Fix)</label>
+            <input type="text" id="shopName" value="ACES Services" disabled>
         </div>
         <div class="form-group">
             <label>Partner Frakció / Szervezet</label>
@@ -178,7 +184,8 @@
         </div>
         
         <div class="btn-group">
-            <button class="btn-discord" id="uploadBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
+            <button class="btn-discord" id="discordBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
+            <button class="btn-upload" id="uploadBtn" onclick="uploadAndCopyLink()">KÉP UPLOAD & LINK MÁSOLÁSA (INGAME CHAT-HEZ)</button>
             <button onclick="downloadImage()">LETÖLTÉS KÉPKÉNT</button>
         </div>
 
@@ -190,7 +197,7 @@
         
         <div id="receipt-area">
             <div class="receipt-header">
-                <h1 id="out-shopName">LOS SANTOS CUSTOMS</h1>
+                <h1 id="out-shopName">ACES Services</h1>
                 <small>FLOTTA ELSZÁMOLÓ BIZONYLAT</small>
             </div>
 
@@ -225,11 +232,16 @@
 </div>
 
 <script>
+    // =========================================================================
+    // DISCORD WEBHOOK URL BEÁLLÍTÁSA (Ide másold be a saját webhook linkedet):
+    // =========================================================================
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1534204817876975666/rCBxqksJGg_rkTLPACljP5UkV92vHiZC_-8-6ISj70U-MVd74WNpBvu6JBM34bbscQ3D';
+
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
     document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
 
     function updateReceipt() {
-        const shopName = document.getElementById('shopName').value;
+        const shopName = "ACES Services";
         const partner = document.getElementById('partner').value;
         const vehicle = document.getElementById('vehicle').value;
         const officer = document.getElementById('officer').value;
@@ -267,20 +279,59 @@
     }
 
     function sendToDiscord() {
-        const webhookUrl = document.getElementById('webhookUrl').value.trim();
         const statusMsg = document.getElementById('statusMsg');
-        const uploadBtn = document.getElementById('uploadBtn');
+        const discordBtn = document.getElementById('discordBtn');
 
-        if (!webhookUrl) {
+        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL === 'IDE_ILLESZD_A_WEBHOOK_LINKET') {
             statusMsg.style.display = 'block';
             statusMsg.className = 'status-msg status-error';
-            statusMsg.innerText = 'Kérlek add meg a Discord Webhook URL-t!';
+            statusMsg.innerText = 'Hiba: Nincs beállítva a Discord Webhook URL a HTML kódjában!';
             return;
         }
 
         statusMsg.style.display = 'block';
         statusMsg.className = 'status-msg status-loading';
         statusMsg.innerText = 'Bizonylat küldése Discordra...';
+        discordBtn.disabled = true;
+
+        const receiptElement = document.getElementById('receipt-area');
+
+        html2canvas(receiptElement, { backgroundColor: '#0d1117', scale: 2 }).then(canvas => {
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
+                formData.append('content', '🧾 **Új elszámoló bizonylat kiállítva!**\n**Szerelőtelep:** ACES Services | **Partner:** ' + document.getElementById('partner').value + ' | **Szerelő:** ' + document.getElementById('mechanic').value);
+
+                fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => {
+                    discordBtn.disabled = false;
+                    if (res.ok) {
+                        statusMsg.className = 'status-msg status-success';
+                        statusMsg.innerText = '✔ Sikeresen beküldve a Discord szobába!';
+                    } else {
+                        throw new Error('Hibás Webhook URL vagy hiányzó jogosultság.');
+                    }
+                })
+                .catch(err => {
+                    discordBtn.disabled = false;
+                    statusMsg.className = 'status-msg status-error';
+                    statusMsg.innerText = 'Hiba: ' + err.message;
+                });
+            }, 'image/png');
+        });
+    }
+
+    // PIXELDRAIN API KÉPFELTÖLTÉS + INGAME CHAT-LINK MÁSOLÁS
+    function uploadAndCopyLink() {
+        const statusMsg = document.getElementById('statusMsg');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        statusMsg.style.display = 'block';
+        statusMsg.className = 'status-msg status-loading';
+        statusMsg.innerText = 'Kép generálása és feltöltése a Pixeldrain-re...';
         uploadBtn.disabled = true;
 
         const receiptElement = document.getElementById('receipt-area');
@@ -289,25 +340,32 @@
             canvas.toBlob(blob => {
                 const formData = new FormData();
                 formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
-                formData.append('content', '🧾 **Új elszámoló bizonylat kiállítva!**\n**Partner:** ' + document.getElementById('partner').value + ' | **Szerelő:** ' + document.getElementById('mechanic').value);
 
-                fetch(webhookUrl, {
+                fetch('https://pixeldrain.com/api/file', {
                     method: 'POST',
                     body: formData
                 })
-                .then(res => {
+                .then(res => res.json())
+                .then(data => {
                     uploadBtn.disabled = false;
-                    if (res.ok) {
+                    if (data && data.id) {
+                        const directUrl = 'https://pixeldrain.com/api/file/' + data.id;
+
+                        // Link másolása a vágólapra ingame beillesztéshez
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(directUrl);
+                        }
+
                         statusMsg.className = 'status-msg status-success';
-                        statusMsg.innerText = '✔ Sikeresen beküldve a Discord szobába!';
+                        statusMsg.innerHTML = '✔ <strong>Sikeres feltöltés!</strong><br>A link másolva a vágólapra (nyomj CTRL+V-t in-game!):<br><a href="' + directUrl + '" target="_blank" style="color: #4ade80;">' + directUrl + '</a>';
                     } else {
-                        throw new Error('Hibás Webhook URL vagy hiányzó jogosultság');
+                        throw new Error('Feltöltési hiba a szerver oldalon');
                     }
                 })
                 .catch(err => {
                     uploadBtn.disabled = false;
                     statusMsg.className = 'status-msg status-error';
-                    statusMsg.innerText = 'Hiba: ' + err.message;
+                    statusMsg.innerText = 'Hiba a feltöltés során: ' + err.message;
                 });
             }, 'image/png');
         });
