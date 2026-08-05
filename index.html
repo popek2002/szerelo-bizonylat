@@ -299,6 +299,23 @@
 
 <script>
     // =========================================================================
+    // DÁTUM ÉS EGYEDI BIZONYLATSZÁM GENERÁLÁS (YYMMDD-HHMM)
+    // =========================================================================
+    function generateReceiptID() {
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+
+        return `SZ-${yy}${mm}${dd}-${hh}${min}`;
+    }
+
+    document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
+    document.getElementById('out-id').innerText = generateReceiptID();
+
+    // =========================================================================
     // LINK RÖVIDÍTŐ LOGIKA (TinyURL API használatával)
     // =========================================================================
     function handleShortenKeyPress(e) {
@@ -354,9 +371,6 @@
     const HOOK_TOKEN = 'cbzPutVLlGrTKES-BdWFWTKsp8OHsxWooRWlBh1-n7AtySeO8DXSuPCIyjvCC1hruOaz';
     const getWebhook = () => ['https://', 'discord', '.com/api/web', 'hooks/', HOOK_ID, '/', HOOK_TOKEN].join('');
 
-    document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
-    document.getElementById('out-id').innerText = 'SZ-' + Math.floor(100000 + Math.random() * 900000);
-
     function applyPreset(partnerName, percent) {
         document.getElementById('partner').value = partnerName;
         document.getElementById('discountPercent').value = percent;
@@ -405,6 +419,9 @@
         const statusMsg = document.getElementById('statusMsg');
         const discordBtn = document.getElementById('discordBtn');
 
+        // Minden beküldés előtt frissítjük a bizonylatszámot a legpontosabb időpontra
+        document.getElementById('out-id').innerText = generateReceiptID();
+
         statusMsg.style.display = 'block';
         statusMsg.className = 'status-msg status-loading';
         statusMsg.innerText = 'Bizonylat küldése Discordra...';
@@ -416,7 +433,7 @@
             canvas.toBlob(blob => {
                 const formData = new FormData();
                 formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
-                formData.append('content', '🧾 **Új elszámoló bizonylat kiállítva!**\n**Szerelőtelep:** ACES Services | **Partner:** ' + document.getElementById('partner').value + ' | **Szerelő:** ' + document.getElementById('mechanic').value);
+                formData.append('content', '🧾 **Új elszámoló bizonylat kiállítva!**\n**Szerelőtelep:** ACES Services | **Bizonylatszám:** ' + document.getElementById('out-id').innerText + ' | **Partner:** ' + document.getElementById('partner').value + ' | **Szerelő:** ' + document.getElementById('mechanic').value);
 
                 fetch(getWebhook(), {
                     method: 'POST',
