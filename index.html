@@ -230,6 +230,13 @@
             <label>Kedvezmény Mértéke (%)</label>
             <input type="number" id="discountPercent" value="100" min="0" max="100" oninput="updateReceipt()">
         </div>
+        
+        <!-- ÚJ EGYÉB MEGJEGYZÉS MEZŐ -->
+        <div class="form-group">
+            <label>Egyéb Megjegyzés (Opcionális)</label>
+            <input type="text" id="notes" placeholder="Pl. Szerződés alapján / Garanciális" oninput="updateReceipt()">
+        </div>
+
         <div class="form-group">
             <label>Szerelő Neve / Azonosítója</label>
             <input type="text" id="mechanic" value="Kovács Péter #SZ-12" oninput="updateReceipt()">
@@ -274,6 +281,11 @@
                 <div class="receipt-row"><span>Igénybevevő:</span> <span id="out-officer"></span></div>
                 <div class="receipt-row"><span>Jármű:</span> <span id="out-vehicle"></span></div>
                 <div class="receipt-row"><span>Munkák:</span> <span id="out-services"></span></div>
+
+                <!-- DINAMIKUS EGYÉB MEGJEGYZÉS SZEKCIÓ (Alapból rejtve) -->
+                <div id="out-notes-container" class="receipt-row" style="display: none;">
+                    <span>Egyéb:</span> <span id="out-notes" style="font-style: italic;"></span>
+                </div>
                 
                 <div class="receipt-divider"></div>
 
@@ -298,9 +310,6 @@
 </div>
 
 <script>
-    // =========================================================================
-    // DÁTUM ÉS EGYEDI BIZONYLATSZÁM GENERÁLÁS (YYMMDD-HHMM)
-    // =========================================================================
     function generateReceiptID() {
         const now = new Date();
         const yy = String(now.getFullYear()).slice(-2);
@@ -315,9 +324,12 @@
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
     document.getElementById('out-id').innerText = generateReceiptID();
 
-    // =========================================================================
-    // LINK RÖVIDÍTŐ LOGIKA (TinyURL API használatával)
-    // =========================================================================
+    function applyPreset(partnerName, percent) {
+        document.getElementById('partner').value = partnerName;
+        document.getElementById('discountPercent').value = percent;
+        updateReceipt();
+    }
+
     function handleShortenKeyPress(e) {
         if (e.key === 'Enter') shortenUrl();
     }
@@ -364,18 +376,9 @@
             });
     }
 
-    // =========================================================================
-    // DISCORD WEBHOOK & SZÁMLÁZÓ LOGIKA
-    // =========================================================================
     const HOOK_ID = '1534277229570293830'; 
     const HOOK_TOKEN = 'cbzPutVLlGrTKES-BdWFWTKsp8OHsxWooRWlBh1-n7AtySeO8DXSuPCIyjvCC1hruOaz';
     const getWebhook = () => ['https://', 'discord', '.com/api/web', 'hooks/', HOOK_ID, '/', HOOK_TOKEN].join('');
-
-    function applyPreset(partnerName, percent) {
-        document.getElementById('partner').value = partnerName;
-        document.getElementById('discountPercent').value = percent;
-        updateReceipt();
-    }
 
     function updateReceipt() {
         const shopName = "ACES Services";
@@ -383,6 +386,7 @@
         const vehicle = document.getElementById('vehicle').value;
         const officer = document.getElementById('officer').value;
         const services = document.getElementById('services').value;
+        const notes = document.getElementById('notes').value.trim();
         const originalPrice = parseFloat(document.getElementById('originalPrice').value) || 0;
         const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
         const mechanic = document.getElementById('mechanic').value;
@@ -396,6 +400,15 @@
         document.getElementById('out-officer').innerText = officer;
         document.getElementById('out-services').innerText = services;
         document.getElementById('out-mechanic').innerText = mechanic;
+
+        // Opcionális megjegyzés logika
+        const notesContainer = document.getElementById('out-notes-container');
+        if (notes !== '') {
+            notesContainer.style.display = 'flex';
+            document.getElementById('out-notes').innerText = notes;
+        } else {
+            notesContainer.style.display = 'none';
+        }
 
         document.getElementById('out-original').innerText = originalPrice.toLocaleString('hu-HU') + ' Ft';
         document.getElementById('out-percent').innerText = discountPercent;
@@ -419,7 +432,6 @@
         const statusMsg = document.getElementById('statusMsg');
         const discordBtn = document.getElementById('discordBtn');
 
-        // Minden beküldés előtt frissítjük a bizonylatszámot a legpontosabb időpontra
         document.getElementById('out-id').innerText = generateReceiptID();
 
         statusMsg.style.display = 'block';
