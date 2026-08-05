@@ -11,7 +11,7 @@
             --panel-bg: #1e293b;
             --accent: #3b82f6;
             --discord: #5865f2;
-            --upload: #10b981;
+            --shortener: #8b5cf6;
             --text: #f8fafc;
             --border: #334155;
         }
@@ -24,6 +24,8 @@
             padding: 20px;
             display: flex;
             justify-content: center;
+            align-items: center;
+            min-height: 90vh;
         }
 
         .container {
@@ -48,7 +50,7 @@
 
         h2 { margin-top: 0; color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
 
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; }
         input, select, textarea {
             width: 100%;
@@ -84,9 +86,7 @@
             font-weight: 600;
             transition: background 0.2s;
         }
-        .btn-preset:hover {
-            background: var(--accent);
-        }
+        .btn-preset:hover { background: var(--accent); }
 
         .btn-group {
             display: grid;
@@ -110,9 +110,24 @@
         button.action-btn:hover { background: #2563eb; }
         button.btn-discord { background: var(--discord); }
         button.btn-discord:hover { background: #4752c4; }
-        button.btn-upload { background: var(--upload); }
-        button.btn-upload:hover { background: #059669; }
+        button.btn-shortener { background: var(--shortener); }
+        button.btn-shortener:hover { background: #7c3aed; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .shortener-box {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px dashed var(--border);
+        }
+
+        .shortener-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.05rem;
+            color: var(--shortener);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         .status-msg {
             margin-top: 15px;
@@ -126,7 +141,7 @@
         .status-loading { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
         .status-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
 
-        /* FEHÉR ALAPÚ SZÁMLA STÍLUS LOGÓVAL */
+        /* FEHÉR ALAPÚ SZÁMLA STÍLUS */
         #receipt-area {
             background-color: #ffffff;
             border: 2px solid #1e293b;
@@ -137,6 +152,8 @@
             position: relative;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+
+        .receipt-content { position: relative; z-index: 1; }
 
         .receipt-header {
             text-align: center;
@@ -153,27 +170,12 @@
             margin-bottom: 5px;
         }
 
-        /* A LOGÓ MÉRETEZÉSE */
-        .brand-container img {
-            width: 42px;
-            height: 42px;
-            object-fit: contain;
-        }
-
+        .brand-container img { width: 42px; height: 42px; object-fit: contain; }
         .receipt-header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 2px; color: #0f172a; font-weight: bold; }
         .receipt-header small { color: #475569; font-weight: bold; }
         
-        .receipt-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
-
-        .receipt-divider {
-            border-top: 1px dashed #0f172a;
-            margin: 15px 0;
-        }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
+        .receipt-divider { border-top: 1px dashed #0f172a; margin: 15px 0; }
 
         .total-box {
             background: #f1f5f9;
@@ -192,7 +194,6 @@
     <div class="card">
         <h2>Szerelési Adatok</h2>
         
-        <!-- GYORSVÁLASZTÓ GOMBOK -->
         <label>Gyorsválasztó Partner Kategóriák:</label>
         <div class="preset-grid">
             <button class="btn-preset" onclick="applyPreset('Rendőrség (LSPD)', 100)">🚓 Rendőrség (100%)</button>
@@ -236,8 +237,17 @@
         
         <div class="btn-group">
             <button class="action-btn btn-discord" id="discordBtn" onclick="sendToDiscord()">KÜLDÉS DISCORDRA</button>
-            <button class="action-btn btn-upload" id="uploadBtn" onclick="copyImageToClipboard()">KÉP MÁSOLÁSA VÁGÓLAPRA (DISCORD / CHAT)</button>
             <button class="action-btn" onclick="downloadImage()">LETÖLTÉS KÉPKÉNT</button>
+        </div>
+
+        <!-- LINK RÖVIDÍTŐ PANEL -->
+        <div class="shortener-box">
+            <h3>🔗 In-Game Link Rövidítő</h3>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <label style="font-size: 0.8rem; color: #94a3b8;">Illeszd be a Discordról kimásolt kép linket:</label>
+                <input type="text" id="longUrlInput" placeholder="https://cdn.discordapp.com/attachments/..." onkeypress="handleShortenKeyPress(event)">
+            </div>
+            <button class="action-btn btn-shortener" id="shortenBtn" onclick="shortenUrl()">LINK RÖVIDÍTÉSE & MÁSOLÁSA</button>
         </div>
 
         <div id="statusMsg" class="status-msg"></div>
@@ -247,40 +257,41 @@
         <h2>Bizonylat Előnézet</h2>
         
         <div id="receipt-area">
-            <div class="receipt-header">
-                <div class="brand-container">
-                    <!-- LOGÓ BEÁLLÍTÁSA: Cseréld ki a src="..." tartalmát a saját logód URL-jére/fájlnevére! -->
-                    <img id="out-logo" src="aces-logo.png" alt="ACES Logo">
-                    <h1 id="out-shopName">ACES Services</h1>
+            <div class="receipt-content">
+                <div class="receipt-header">
+                    <div class="brand-container">
+                        <img id="out-logo" src="aces-logo.png" alt="ACES Logo">
+                        <h1 id="out-shopName">ACES Services</h1>
+                    </div>
+                    <small>FLOTTA ELSZÁMOLÓ BIZONYLAT</small>
                 </div>
-                <small>FLOTTA ELSZÁMOLÓ BIZONYLAT</small>
-            </div>
 
-            <div class="receipt-row"><span>Dátum:</span> <span id="out-date"></span></div>
-            <div class="receipt-row"><span>Bizonylatszám:</span> <span id="out-id"></span></div>
-            <div class="receipt-divider"></div>
+                <div class="receipt-row"><span>Dátum:</span> <span id="out-date"></span></div>
+                <div class="receipt-row"><span>Bizonylatszám:</span> <span id="out-id"></span></div>
+                <div class="receipt-divider"></div>
 
-            <div class="receipt-row"><span>Partner:</span> <strong id="out-partner"></strong></div>
-            <div class="receipt-row"><span>Igénybevevő:</span> <span id="out-officer"></span></div>
-            <div class="receipt-row"><span>Jármű:</span> <span id="out-vehicle"></span></div>
-            <div class="receipt-row"><span>Munkák:</span> <span id="out-services"></span></div>
-            
-            <div class="receipt-divider"></div>
+                <div class="receipt-row"><span>Partner:</span> <strong id="out-partner"></strong></div>
+                <div class="receipt-row"><span>Igénybevevő:</span> <span id="out-officer"></span></div>
+                <div class="receipt-row"><span>Jármű:</span> <span id="out-vehicle"></span></div>
+                <div class="receipt-row"><span>Munkák:</span> <span id="out-services"></span></div>
+                
+                <div class="receipt-divider"></div>
 
-            <div class="receipt-row"><span>Eredeti Összeg:</span> <span id="out-original"></span></div>
-            <div class="receipt-row"><span>Kedvezmény (<span id="out-percent"></span>%):</span> <span id="out-discount"></span></div>
+                <div class="receipt-row"><span>Eredeti Összeg:</span> <span id="out-original"></span></div>
+                <div class="receipt-row"><span>Kedvezmény (<span id="out-percent"></span>%):</span> <span id="out-discount"></span></div>
 
-            <div class="total-box">
-                <div class="total-row">
-                    <span>FIZETENDŐ ÖSSZEG:</span>
-                    <span class="highlight" id="out-final">0 Ft</span>
+                <div class="total-box">
+                    <div class="total-row">
+                        <span>FIZETENDŐ ÖSSZEG:</span>
+                        <span class="highlight" id="out-final">0 Ft</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="receipt-divider"></div>
-            <div class="receipt-row"><span>Kiállító szerelő:</span> <span id="out-mechanic"></span></div>
-            <div style="text-align: center; margin-top: 15px; font-size: 0.8em; color: #475569; font-weight: bold;">
-                *** Hivatalos Frakcióközi Bizonylat ***
+                <div class="receipt-divider"></div>
+                <div class="receipt-row"><span>Kiállító szerelő:</span> <span id="out-mechanic"></span></div>
+                <div style="text-align: center; margin-top: 15px; font-size: 0.8em; color: #475569; font-weight: bold;">
+                    *** Hivatalos Frakcióközi Bizonylat ***
+                </div>
             </div>
         </div>
     </div>
@@ -288,11 +299,59 @@
 
 <script>
     // =========================================================================
-    // SZÉTBONTOTT WEBHOOK
+    // LINK RÖVIDÍTŐ LOGIKA (TinyURL API használatával)
+    // =========================================================================
+    function handleShortenKeyPress(e) {
+        if (e.key === 'Enter') shortenUrl();
+    }
+
+    function shortenUrl() {
+        const longUrl = document.getElementById('longUrlInput').value.trim();
+        const statusMsg = document.getElementById('statusMsg');
+        const shortenBtn = document.getElementById('shortenBtn');
+
+        if (!longUrl) {
+            statusMsg.style.display = 'block';
+            statusMsg.className = 'status-msg status-error';
+            statusMsg.innerText = 'Kérlek illeszd be a Discord képlinket a mezőbe!';
+            return;
+        }
+
+        statusMsg.style.display = 'block';
+        statusMsg.className = 'status-msg status-loading';
+        statusMsg.innerText = 'Rövid link generálása...';
+        shortenBtn.disabled = true;
+
+        const apiUrl = 'https://tinyurl.com/api-create.php?url=' + encodeURIComponent(longUrl);
+
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('Nem sikerült a link rövidítése.');
+                return response.text();
+            })
+            .then(shortUrl => {
+                shortenBtn.disabled = false;
+                navigator.clipboard.writeText(shortUrl).then(() => {
+                    statusMsg.className = 'status-msg status-success';
+                    statusMsg.innerHTML = `✔ <strong>Rövid link kimásolva a vágólapra!</strong><br><span style="font-family:monospace; text-decoration:underline;">${shortUrl}</span><br>Most már beillesztheted in-game!`;
+                    document.getElementById('longUrlInput').value = '';
+                }).catch(() => {
+                    statusMsg.className = 'status-msg status-success';
+                    statusMsg.innerHTML = `✔ Elkészült a rövid link: <strong>${shortUrl}</strong> (Kérlek másold ki kézzel!)`;
+                });
+            })
+            .catch(err => {
+                shortenBtn.disabled = false;
+                statusMsg.className = 'status-msg status-error';
+                statusMsg.innerText = 'Hiba történt a link rövidítése során. Ellenőrizd a beillesztett URL-t!';
+            });
+    }
+
+    // =========================================================================
+    // DISCORD WEBHOOK & SZÁMLÁZÓ LOGIKA
     // =========================================================================
     const HOOK_ID = '1534277229570293830'; 
     const HOOK_TOKEN = 'cbzPutVLlGrTKES-BdWFWTKsp8OHsxWooRWlBh1-n7AtySeO8DXSuPCIyjvCC1hruOaz';
-    
     const getWebhook = () => ['https://', 'discord', '.com/api/web', 'hooks/', HOOK_ID, '/', HOOK_TOKEN].join('');
 
     document.getElementById('out-date').innerText = new Date().toISOString().slice(0, 10);
@@ -334,7 +393,7 @@
 
     function downloadImage() {
         const receiptElement = document.getElementById('receipt-area');
-        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
             const link = document.createElement('a');
             link.download = 'bizonylat_' + document.getElementById('out-id').innerText + '.png';
             link.href = canvas.toDataURL('image/png');
@@ -353,7 +412,7 @@
 
         const receiptElement = document.getElementById('receipt-area');
 
-        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
             canvas.toBlob(blob => {
                 const formData = new FormData();
                 formData.append('file', blob, 'bizonylat_' + document.getElementById('out-id').innerText + '.png');
@@ -367,7 +426,7 @@
                     discordBtn.disabled = false;
                     if (res.ok) {
                         statusMsg.className = 'status-msg status-success';
-                        statusMsg.innerText = '✔ Sikeresen beküldve a Discord szobába!';
+                        statusMsg.innerText = '✔ Sikeresen beküldve a Discord szobába! Másold ki a képlinket, és vádd be alább a rövidítőbe!';
                     } else {
                         throw new Error('Hibás Webhook URL vagy hiányzó jogosultság.');
                     }
@@ -377,35 +436,6 @@
                     statusMsg.className = 'status-msg status-error';
                     statusMsg.innerText = 'Hiba: ' + err.message;
                 });
-            }, 'image/png');
-        });
-    }
-
-    function copyImageToClipboard() {
-        const statusMsg = document.getElementById('statusMsg');
-        const uploadBtn = document.getElementById('uploadBtn');
-
-        statusMsg.style.display = 'block';
-        statusMsg.className = 'status-msg status-loading';
-        statusMsg.innerText = 'Kép másolása a vágólapra...';
-        uploadBtn.disabled = true;
-
-        const receiptElement = document.getElementById('receipt-area');
-
-        html2canvas(receiptElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
-            canvas.toBlob(blob => {
-                try {
-                    const item = new ClipboardItem({ 'image/png': blob });
-                    navigator.clipboard.writeText ? navigator.clipboard.write([item]).then(() => {
-                        uploadBtn.disabled = false;
-                        statusMsg.className = 'status-msg status-success';
-                        statusMsg.innerHTML = '✔ <strong>Kép kimásolva a vágólapra!</strong><br>Most már nyomhatsz CTRL+V-t Discordon, fórumon vagy chatben.';
-                    }) : null;
-                } catch (e) {
-                    uploadBtn.disabled = false;
-                    statusMsg.className = 'status-msg status-error';
-                    statusMsg.innerText = 'Nem sikerült a vágólapra másolás. Használd a Discord vagy Letöltés gombot!';
-                }
             }, 'image/png');
         });
     }
